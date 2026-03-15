@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reverse Prompt Engineering — Raja Ajay M</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --ink: #0d0d0d;
+    --paper: #f5f0e8;
+    --gold: #c9a84c;
+    --gold-light: #e8d5a3;
+    --muted: #6b6460;
+    --accent: #1a3a5c;
+    --rule: #d4c9b8;
+    --white: #ffffff;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); overflow-x: hidden; cursor: none; }
+
+  .cursor { width: 10px; height: 10px; background: var(--gold); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9999; transform: translate(-50%,-50%); transition: transform 0.1s ease; }
+  .cursor-ring { width: 36px; height: 36px; border: 1.5px solid var(--gold); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9998; transform: translate(-50%,-50%); transition: all 0.25s ease; opacity: 0.6; }
+
+  /* Nav */
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; padding: 18px 60px; display: flex; justify-content: space-between; align-items: center; background: rgba(245,240,232,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
+  .nav-brand { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--ink); text-decoration: none; }
+  .nav-links { display: flex; gap: 32px; list-style: none; }
+  .nav-links a { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); text-decoration: none; font-weight: 500; transition: color 0.2s; position: relative; }
+  .nav-links a::after { content:''; position:absolute; bottom:-3px; left:0; width:0; height:1px; background:var(--gold); transition:width 0.3s ease; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-back { display: inline-flex; align-items: center; gap: 8px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); text-decoration: none; font-weight: 500; transition: color 0.2s; }
+  .nav-back:hover { color: var(--gold); }
+  .nav-back:hover svg { transform: translateX(-3px); }
+  .nav-back svg { transition: transform 0.2s; }
+
+  /* Divider */
+  .section-divider { display: flex; align-items: center; gap: 20px; padding: 0 80px; margin: 16px 0; }
+  .divider-line { flex: 1; height: 1px; background: var(--rule); }
+  .divider-diamond { width: 8px; height: 8px; background: var(--gold); transform: rotate(45deg); flex-shrink: 0; }
+
+  section { padding: 80px 80px; }
+  .section-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--gold); font-weight: 500; margin-bottom: 10px; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 700; line-height: 1.1; color: var(--ink); margin-bottom: 48px; }
+
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+  /* ── HERO ── */
+  .hero { min-height: 100vh; padding-top: 70px; position: relative; overflow: hidden; background: var(--ink); display: flex; align-items: center; }
+  .hero-bg { position: absolute; inset: 0; background: url('https://images.unsplash.com/photo-1686191128892-3b37add4c844?w=1600&q=80') center/cover no-repeat; opacity: 0.15; }
+  .hero-inner { position: relative; z-index: 2; padding: 80px; max-width: 860px; }
+  .hero-eyebrow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.25em; color: var(--gold); font-weight: 500; margin-bottom: 20px; opacity:0; animation: fadeUp 0.7s 0.2s forwards; }
+  .hero-title { font-family: 'Playfair Display', serif; font-size: clamp(3rem, 6vw, 6rem); font-weight: 900; line-height: 0.95; color: var(--paper); margin-bottom: 16px; opacity:0; animation: fadeUp 0.8s 0.35s forwards; }
+  .hero-title em { font-style: italic; color: var(--gold); }
+  .hero-sub { font-family: 'Playfair Display', serif; font-size: clamp(1rem, 1.8vw, 1.3rem); font-style: italic; color: rgba(245,240,232,0.55); margin-bottom: 40px; opacity:0; animation: fadeUp 0.8s 0.5s forwards; }
+  .hero-desc { font-size: 0.92rem; line-height: 1.8; color: rgba(245,240,232,0.7); max-width: 580px; margin-bottom: 48px; opacity:0; animation: fadeUp 0.8s 0.65s forwards; }
+  .hero-meta { display: flex; gap: 0; opacity:0; animation: fadeUp 0.8s 0.8s forwards; }
+  .hm-item { padding: 20px 36px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); text-align: center; }
+  .hm-item:first-child { border-right: none; }
+  .hm-num { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 900; color: var(--gold); line-height: 1; margin-bottom: 4px; }
+  .hm-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(245,240,232,0.45); }
+
+  /* ── ABOUT ── */
+  #about { background: var(--paper); }
+  .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: start; }
+  .about-text { font-size: 0.92rem; line-height: 1.85; color: #3d3832; margin-bottom: 20px; }
+  .about-highlights { display: flex; flex-direction: column; gap: 14px; margin: 28px 0; }
+  .hl-item { display: flex; align-items: flex-start; gap: 14px; padding: 16px; background: white; border: 1px solid var(--rule); }
+  .hl-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+  .hl-body { font-size: 0.84rem; line-height: 1.65; color: var(--muted); }
+  .hl-body strong { color: var(--ink); display: block; margin-bottom: 2px; font-size: 0.88rem; }
+  .contact-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .contact-chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border: 1px solid var(--rule); font-size: 0.75rem; color: var(--muted); text-decoration: none; transition: all 0.2s; }
+  .contact-chip:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* About right — what is reverse prompting */
+  .concept-box { background: var(--ink); padding: 40px; color: var(--paper); }
+  .concept-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--gold); font-weight: 500; margin-bottom: 16px; }
+  .concept-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--paper); margin-bottom: 16px; line-height: 1.3; }
+  .concept-text { font-size: 0.85rem; line-height: 1.8; color: rgba(245,240,232,0.7); margin-bottom: 24px; }
+  .concept-steps { display: flex; flex-direction: column; gap: 12px; }
+  .concept-step { display: flex; gap: 16px; align-items: flex-start; }
+  .step-num { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 900; color: var(--gold); opacity: 0.5; line-height: 1; flex-shrink: 0; width: 28px; }
+  .step-text { font-size: 0.83rem; line-height: 1.65; color: rgba(245,240,232,0.75); padding-top: 2px; }
+  .step-text strong { color: var(--gold); }
+
+  /* ── WORK SAMPLES ── */
+  #work { background: white; }
+  .work-intro { font-size: 0.9rem; line-height: 1.8; color: var(--muted); max-width: 700px; margin-bottom: 48px; }
+  .samples-grid { display: flex; flex-direction: column; gap: 3px; }
+
+  .sample-card {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    overflow: hidden;
+    transition: box-shadow 0.3s ease;
+  }
+  .sample-card:hover { box-shadow: 0 12px 36px rgba(0,0,0,0.08); }
+
+  .sample-img-wrap { position: relative; overflow: hidden; }
+  .sample-img { width: 100%; height: 100%; min-height: 280px; object-fit: cover; display: block; transition: transform 0.5s ease; }
+  .sample-card:hover .sample-img { transform: scale(1.03); }
+  .sample-img-label { position: absolute; top: 16px; left: 16px; background: var(--ink); color: var(--gold); font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 600; padding: 5px 12px; }
+
+  .sample-body { padding: 36px 40px; display: flex; flex-direction: column; gap: 20px; }
+  .sample-num { font-family: 'Playfair Display', serif; font-size: 0.75rem; color: var(--gold); font-weight: 700; letter-spacing: 0.1em; }
+  .sample-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: var(--ink); line-height: 1.3; }
+
+  .prompt-compare { display: flex; flex-direction: column; gap: 10px; }
+  .prompt-box { padding: 14px 18px; border-left: 3px solid; }
+  .prompt-box.my-guess { border-color: var(--accent); background: rgba(26,58,92,0.05); }
+  .prompt-box.actual { border-color: var(--gold); background: rgba(201,168,76,0.06); }
+  .prompt-box-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 600; margin-bottom: 6px; }
+  .prompt-box.my-guess .prompt-box-label { color: var(--accent); }
+  .prompt-box.actual .prompt-box-label { color: var(--gold); }
+  .prompt-box-text { font-size: 0.82rem; line-height: 1.65; color: #3d3832; font-style: italic; }
+
+  .match-bar { display: flex; align-items: center; gap: 12px; }
+  .match-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); font-weight: 500; white-space: nowrap; }
+  .match-track { flex: 1; height: 4px; background: var(--rule); }
+  .match-fill { height: 100%; background: linear-gradient(90deg, var(--gold), #e8c96a); width: 0; transition: width 1.2s ease; }
+  .match-pct { font-size: 0.78rem; font-weight: 600; color: var(--gold); white-space: nowrap; }
+
+  .sample-insight { background: var(--ink); padding: 12px 16px; display: flex; gap: 10px; align-items: flex-start; }
+  .insight-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--gold); font-weight: 600; white-space: nowrap; flex-shrink: 0; padding-top: 1px; }
+  .insight-text { font-size: 0.78rem; color: rgba(245,240,232,0.75); line-height: 1.6; }
+
+  /* ── PROJECT DESCRIPTION ── */
+  #project { background: var(--paper); }
+  .proj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+  .proj-block { background: white; border: 1px solid var(--rule); padding: 36px; }
+  .proj-block-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--gold); font-weight: 500; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+  .proj-block-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--ink); margin-bottom: 14px; }
+  .proj-block-text { font-size: 0.85rem; line-height: 1.75; color: var(--muted); }
+  .proj-block ul { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .proj-block ul li { font-size: 0.84rem; line-height: 1.65; color: var(--muted); padding-left: 18px; position: relative; }
+  .proj-block ul li::before { content: '—'; position: absolute; left: 0; color: var(--gold); font-weight: 700; }
+  .proj-full { grid-column: 1 / -1; background: var(--ink); border: none; }
+  .proj-full .proj-block-label { border-color: rgba(255,255,255,0.1); color: var(--gold); }
+  .proj-full .proj-block-title { color: var(--paper); }
+  .proj-full .proj-block-text { color: rgba(245,240,232,0.7); }
+  .proj-full ul li { color: rgba(245,240,232,0.7); }
+  .proj-full ul li::before { color: var(--gold); }
+
+  /* ── SKILLS ── */
+  #skills { background: #f0ebe0; }
+  .skills-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+  .skill-group-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--gold); font-weight: 500; margin-bottom: 24px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+  .skill-bars { display: flex; flex-direction: column; gap: 20px; }
+  .skill-bar-header { display: flex; justify-content: space-between; margin-bottom: 7px; }
+  .skill-bar-name { font-size: 0.85rem; color: var(--ink); font-weight: 500; }
+  .skill-bar-pct { font-size: 0.72rem; color: var(--gold); font-weight: 500; }
+  .skill-bar-track { height: 3px; background: var(--rule); }
+  .skill-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold), #e8c96a); width: 0; transition: width 1.2s cubic-bezier(0.4,0,0.2,1); }
+  .skill-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 32px; }
+  .skill-pill { padding: 6px 14px; border: 1px solid var(--rule); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); background: white; transition: all 0.2s; }
+  .skill-pill:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ── TESTIMONIALS ── */
+  #testimonials { background: var(--ink); }
+  #testimonials .section-label { color: var(--gold); }
+  #testimonials .section-title { color: var(--paper); margin-bottom: 40px; }
+  .testi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; }
+  .testi-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 36px 32px; transition: background 0.2s; }
+  .testi-card:hover { background: rgba(201,168,76,0.07); }
+  .testi-mark { font-family: 'Playfair Display', serif; font-size: 4rem; color: var(--gold); opacity: 0.3; line-height: 1; margin-bottom: 12px; }
+  .testi-text { font-family: 'Playfair Display', serif; font-size: 0.93rem; font-style: italic; line-height: 1.75; color: rgba(245,240,232,0.82); margin-bottom: 24px; }
+  .testi-author { display: flex; align-items: center; gap: 12px; }
+  .testi-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-weight: 700; color: var(--ink); font-size: 0.85rem; flex-shrink: 0; }
+  .testi-name { font-size: 0.82rem; font-weight: 500; color: var(--paper); }
+  .testi-role { font-size: 0.68rem; color: rgba(245,240,232,0.4); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+
+  /* ── CONTACT ── */
+  .contact-section { background: var(--paper); padding: 80px; text-align: center; }
+  .contact-title { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; line-height: 1.05; margin-bottom: 16px; }
+  .contact-title em { font-style: italic; color: var(--gold); }
+  .contact-sub { font-size: 0.88rem; line-height: 1.75; color: var(--muted); max-width: 480px; margin: 0 auto 40px; }
+  .contact-grid { display: flex; justify-content: center; gap: 48px; flex-wrap: wrap; }
+  .citem-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--gold); font-weight: 500; margin-bottom: 6px; }
+  .citem-value { font-size: 0.9rem; color: var(--ink); }
+  .citem-value a { color: var(--ink); text-decoration: none; transition: color 0.2s; }
+  .citem-value a:hover { color: var(--gold); }
+
+  footer { background: #050505; color: var(--muted); text-align: center; padding: 24px; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  @media (max-width: 900px) {
+    nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    section { padding: 56px 24px; }
+    .section-divider { padding: 0 24px; }
+    .hero-inner { padding: 80px 24px 60px; }
+    .hero-meta { flex-wrap: wrap; }
+    .about-grid, .proj-grid, .skills-layout { grid-template-columns: 1fr; }
+    .sample-card { grid-template-columns: 1fr; }
+    .sample-img { min-height: 220px; }
+    .testi-grid { grid-template-columns: 1fr; }
+    .contact-section { padding: 56px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<nav>
+  <span class="nav-brand">Artifact 02 — Reverse Prompt Engineering</span>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#work">Work Samples</a></li>
+    <li><a href="#project">Project</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#testimonials">Testimonials</a></li>
+  </ul>
+  <a href="index.html" class="nav-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Back to Portfolio
+  </a>
+</nav>
+
+<!-- Hero -->
+<section class="hero" id="top">
+  <div class="hero-bg"></div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Artifact 02 · AI/ML · Class Activity</div>
+    <h1 class="hero-title">Reverse<br><em>Prompt</em><br>Engineering</h1>
+    <p class="hero-sub">Decoding AI images to reconstruct the prompts that created them</p>
+    <p class="hero-desc">In this class activity, I was given AI-generated images and challenged to reverse-engineer the exact prompts used to create them. This required deep understanding of how AI image models interpret language — including style cues, subject framing, lighting descriptors, and artistic references.</p>
+    <div class="hero-meta">
+      <div class="hm-item"><div class="hm-num">5</div><div class="hm-label">Images Analyzed</div></div>
+      <div class="hm-item"><div class="hm-num">3</div><div class="hm-label">Avg. Accuracy</div></div>
+      <div class="hm-item"><div class="hm-num">AI</div><div class="hm-label">Skill Area</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- About Me -->
+<section id="about">
+  <p class="section-label reveal">About Me</p>
+  <h2 class="section-title reveal">The Mind<br>Behind the Work</h2>
+  <div class="about-grid">
+    <div>
+      <p class="about-text reveal">I'm Raja Ajay M — a Business Analytics professional and AI/ML student at Indiana Wesleyan University with a background spanning 7+ years across data architecture, business intelligence, and predictive modeling. My goal is to bridge the gap between analytical thinking and practical AI application.</p>
+      <p class="about-text reveal">This artifact demonstrates my ability to think like an AI model — understanding not just how to write prompts, but how to read an image and decode the underlying language structures that produced it. It's a skill that reflects deep fluency in how generative AI systems interpret human language.</p>
+      <div class="about-highlights reveal">
+        <div class="hl-item">
+          <div class="hl-icon">🎯</div>
+          <div class="hl-body"><strong>Career Goal</strong>Leverage AI/ML tools to drive smarter, faster business decisions — combining analytical expertise with hands-on generative AI fluency.</div>
+        </div>
+        <div class="hl-item">
+          <div class="hl-icon">💡</div>
+          <div class="hl-body"><strong>Unique Selling Point</strong>I approach AI not just as a user but as an analyst — understanding the mechanics behind outputs, not just the outputs themselves.</div>
+        </div>
+        <div class="hl-item">
+          <div class="hl-icon">📍</div>
+          <div class="hl-body"><strong>Based In</strong>Chicago, Illinois · Open to remote and hybrid opportunities nationwide.</div>
+        </div>
+      </div>
+      <div class="contact-row reveal">
+        <a href="mailto:ajmaddy25@gmail.com" class="contact-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          ajmaddy25@gmail.com
+        </a>
+        <a href="tel:+17799397969" class="contact-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.59 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.73a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/></svg>
+          779-939-7969
+        </a>
+        <a href="#" class="contact-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Chicago, Illinois
+        </a>
+      </div>
+    </div>
+    <div class="concept-box reveal">
+      <div class="concept-label">What is Reverse Prompt Engineering?</div>
+      <div class="concept-title">Reading an AI image backward to find its language</div>
+      <p class="concept-text">Standard prompt engineering starts with words and produces an image. Reverse prompt engineering flips that — you start with the image and work backward to reconstruct the prompt. It requires understanding how AI models parse language into visual concepts.</p>
+      <div class="concept-steps">
+        <div class="concept-step">
+          <div class="step-num">1</div>
+          <div class="step-text"><strong>Observe</strong> — Study the image carefully: subject, style, lighting, mood, color palette, and artistic references.</div>
+        </div>
+        <div class="concept-step">
+          <div class="step-num">2</div>
+          <div class="step-text"><strong>Decode</strong> — Identify which visual elements are likely tied to specific prompt keywords or phrases.</div>
+        </div>
+        <div class="concept-step">
+          <div class="step-num">3</div>
+          <div class="step-text"><strong>Reconstruct</strong> — Write a prompt that would most likely produce the same image using known AI model conventions.</div>
+        </div>
+        <div class="concept-step">
+          <div class="step-num">4</div>
+          <div class="step-text"><strong>Compare</strong> — Evaluate your guess against the actual prompt and analyze the gaps in your reasoning.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- Work Samples -->
+<section id="work" style="background:white;">
+  <p class="section-label reveal">Work Samples</p>
+  <h2 class="section-title reveal">My Guesses vs.<br>Actual Prompts</h2>
+  <p class="work-intro reveal">Below are five AI-generated images from the class activity. For each image, I've shown my reconstructed prompt guess alongside the actual prompt — and a match accuracy score reflecting how well I captured the key elements.</p>
+
+  <div class="samples-grid">
+
+    <!-- Sample 1 -->
+    <div class="sample-card reveal">
+      <div class="sample-img-wrap">
+        <img class="sample-img" src="https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=600&q=80" alt="Victorian Cat" loading="lazy">
+        <div class="sample-img-label">Image 01</div>
+      </div>
+      <div class="sample-body">
+        <div class="sample-num">Sample 01</div>
+        <div class="sample-title">Victorian Cat Having Tea</div>
+        <div class="prompt-compare">
+          <div class="prompt-box my-guess">
+            <div class="prompt-box-label">My Guess</div>
+            <div class="prompt-box-text">"A cat dressed in Victorian clothing sitting at a table drinking tea, cloudy sky background, fantasy digital art style"</div>
+          </div>
+          <div class="prompt-box actual">
+            <div class="prompt-box-label">Actual Prompt</div>
+            <div class="prompt-box-text">"A cat in Victorian style wearing a top hat having tea, clouds in the background, planet Mars visible at the bottom, detailed whimsical digital art"</div>
+          </div>
+        </div>
+        <div class="match-bar">
+          <div class="match-label">Match Accuracy</div>
+          <div class="match-track"><div class="skill-bar-fill match-fill" data-width="72"></div></div>
+          <div class="match-pct">72%</div>
+        </div>
+        <div class="sample-insight">
+          <div class="insight-label">Insight</div>
+          <div class="insight-text">I identified the Victorian clothing and tea scene correctly but completely missed the planet Mars in the background — a surreal detail that required closer observation of the lower portion of the image.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sample 2 -->
+    <div class="sample-card reveal">
+      <div class="sample-img-wrap">
+        <img class="sample-img" src="https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&q=80" alt="Indian Girl Ramen Japan" loading="lazy">
+        <div class="sample-img-label">Image 02</div>
+      </div>
+      <div class="sample-body">
+        <div class="sample-num">Sample 02</div>
+        <div class="sample-title">Indian Girl Eating Ramen in Japan</div>
+        <div class="prompt-compare">
+          <div class="prompt-box my-guess">
+            <div class="prompt-box-label">My Guess</div>
+            <div class="prompt-box-text">"An Indian girl eating ramen in a cozy Japanese room, mountain view from the window, cultural mix setting, warm lighting, digital art"</div>
+          </div>
+          <div class="prompt-box actual">
+            <div class="prompt-box-label">Actual Prompt</div>
+            <div class="prompt-box-text">"An Indian girl having ramen in a Japanese room with a mountain view, Nigeria flag hanging on the wall, a small volcano-like monument on the table, cozy digital art"</div>
+          </div>
+        </div>
+        <div class="match-bar">
+          <div class="match-label">Match Accuracy</div>
+          <div class="match-track"><div class="skill-bar-fill match-fill" data-width="65"></div></div>
+          <div class="match-pct">65%</div>
+        </div>
+        <div class="sample-insight">
+          <div class="insight-label">Insight</div>
+          <div class="insight-text">I captured the main scene well but missed two key cultural details — the Nigeria flag on the wall and the volcano monument on the table. This taught me to scan every corner of an image, not just the focal point.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sample 3 -->
+    <div class="sample-card reveal">
+      <div class="sample-img-wrap">
+        <img class="sample-img" src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&q=80" alt="Teacher Teaching Spanish" loading="lazy">
+        <div class="sample-img-label">Image 03</div>
+      </div>
+      <div class="sample-body">
+        <div class="sample-num">Sample 03</div>
+        <div class="sample-title">Teacher Teaching Spanish</div>
+        <div class="prompt-compare">
+          <div class="prompt-box my-guess">
+            <div class="prompt-box-label">My Guess</div>
+            <div class="prompt-box-text">"A teacher standing in front of a class teaching a foreign language, blackboard with words, students seated, bright school setting"</div>
+          </div>
+          <div class="prompt-box actual">
+            <div class="prompt-box-label">Actual Prompt</div>
+            <div class="prompt-box-text">"A teacher teaching Spanish to students in a classroom, Spanish vocabulary written on a blackboard, diverse group of attentive students, bright digital illustration"</div>
+          </div>
+        </div>
+        <div class="match-bar">
+          <div class="match-label">Match Accuracy</div>
+          <div class="match-track"><div class="skill-bar-fill match-fill" data-width="80"></div></div>
+          <div class="match-pct">80%</div>
+        </div>
+        <div class="sample-insight">
+          <div class="insight-label">Insight</div>
+          <div class="insight-text">I correctly identified the teaching scene and classroom setup but used "foreign language" instead of specifying Spanish — a key reminder that AI models respond to specific language names, not general terms.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sample 4 -->
+    <div class="sample-card reveal">
+      <div class="sample-img-wrap">
+        <img class="sample-img" src="https://images.unsplash.com/photo-1544531585-9847b68c8c86?w=600&q=80" alt="Students Debate Sun and Moon" loading="lazy">
+        <div class="sample-img-label">Image 04</div>
+      </div>
+      <div class="sample-body">
+        <div class="sample-num">Sample 04</div>
+        <div class="sample-title">Student Debate — Sun vs. Moon</div>
+        <div class="prompt-compare">
+          <div class="prompt-box my-guess">
+            <div class="prompt-box-label">My Guess</div>
+            <div class="prompt-box-text">"Two groups of students arguing in a classroom, one side with a sun poster and one with a moon poster, lively debate scene, colorful illustration"</div>
+          </div>
+          <div class="prompt-box actual">
+            <div class="prompt-box-label">Actual Prompt</div>
+            <div class="prompt-box-text">"Two groups of students having a debate about the sun and the moon in a classroom, teacher announcing both groups as winners, energetic and celebratory scene, colorful digital illustration"</div>
+          </div>
+        </div>
+        <div class="match-bar">
+          <div class="match-label">Match Accuracy</div>
+          <div class="match-track"><div class="skill-bar-fill match-fill" data-width="78"></div></div>
+          <div class="match-pct">78%</div>
+        </div>
+        <div class="sample-insight">
+          <div class="insight-label">Insight</div>
+          <div class="insight-text">I identified the debate and sun/moon topics but missed the most important narrative detail — that the teacher declares both groups winners. This celebratory twist completely changes the mood of the image and shows how story context matters in a prompt.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- Project Description -->
+<section id="project">
+  <p class="section-label reveal">Project Description</p>
+  <h2 class="section-title reveal">Context, Goals<br>& Outcomes</h2>
+  <div class="proj-grid">
+    <div class="proj-block reveal">
+      <div class="proj-block-label">Context</div>
+      <div class="proj-block-title">Class Activity Overview</div>
+      <p class="proj-block-text">This activity was part of an AI/ML course at Indiana Wesleyan University. The instructor presented five AI-generated images created using Midjourney and DALL-E. Each student was asked to independently write a prompt they believed would reproduce the image as closely as possible.</p>
+    </div>
+    <div class="proj-block reveal">
+      <div class="proj-block-label">Goal</div>
+      <div class="proj-block-title">What We Were Trying to Achieve</div>
+      <p class="proj-block-text">The goal was to develop intuition for how AI image models interpret language — specifically which words carry the most weight, how style references work, and how specificity in a prompt changes the visual output. It builds fluency in AI communication from both directions.</p>
+    </div>
+    <div class="proj-block reveal">
+      <div class="proj-block-label">Challenges Faced</div>
+      <div class="proj-block-title">What Made It Difficult</div>
+      <div class="proj-block-text">
+        <ul>
+          <li>AI images can match multiple different prompts — distinguishing between them required careful attention to subtle visual cues.</li>
+          <li>Style references like "photorealistic" vs "cinematic" produce similar but distinct outputs that are hard to differentiate visually.</li>
+          <li>Camera and lens references (e.g., "shot on Sony A7") affect lighting and sharpness in ways that are easy to miss without prior knowledge.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proj-block reveal">
+      <div class="proj-block-label">Solutions & Learnings</div>
+      <div class="proj-block-title">How I Improved Through the Activity</div>
+      <div class="proj-block-text">
+        <ul>
+          <li>Developed a structured observation checklist: subject → style → lighting → color → mood → technical specs.</li>
+          <li>Learned to identify "anchor words" — the 2–3 terms that most determine the overall look of an AI image.</li>
+          <li>Practiced distinguishing between artistic styles (photorealism, illustration, concept art) and their visual signatures.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proj-block proj-full reveal">
+      <div class="proj-block-label">Key Takeaway</div>
+      <div class="proj-block-title">What This Skill Means in Practice</div>
+      <p class="proj-block-text">Reverse prompt engineering is a high-value AI skill because it forces you to understand the model's perspective — not just what you want, but how to express it in the model's language. For business applications, this means being able to audit AI outputs, reproduce desired results consistently, and troubleshoot when AI doesn't produce what was expected. It complements forward prompt engineering to create a complete, bidirectional fluency with generative AI tools.</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- Skills -->
+<section id="skills">
+  <p class="section-label reveal">Competencies</p>
+  <h2 class="section-title reveal">Skills &<br>Technologies</h2>
+  <div class="skills-layout">
+    <div class="reveal">
+      <div class="skill-group-title">AI & Prompt Skills</div>
+      <div class="skill-bars">
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Prompt Engineering</span><span class="skill-bar-pct">88%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="88"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Reverse Prompt Analysis</span><span class="skill-bar-pct">80%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="80"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">AI Image Interpretation</span><span class="skill-bar-pct">82%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="82"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Generative AI Tools</span><span class="skill-bar-pct">85%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="85"></div></div>
+        </div>
+      </div>
+      <div class="skill-pills">
+        <span class="skill-pill">Midjourney</span>
+        <span class="skill-pill">DALL-E</span>
+        <span class="skill-pill">Stable Diffusion</span>
+        <span class="skill-pill">Claude AI</span>
+        <span class="skill-pill">ChatGPT</span>
+      </div>
+    </div>
+    <div class="reveal">
+      <div class="skill-group-title">Analytical & Business Skills</div>
+      <div class="skill-bars">
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Visual Pattern Recognition</span><span class="skill-bar-pct">90%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="90"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Critical Thinking</span><span class="skill-bar-pct">92%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="92"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">AI Output Evaluation</span><span class="skill-bar-pct">85%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="85"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Business Analytics</span><span class="skill-bar-pct">95%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="95"></div></div>
+        </div>
+      </div>
+      <div class="skill-pills">
+        <span class="skill-pill">SQL</span>
+        <span class="skill-pill">Python</span>
+        <span class="skill-pill">Power BI</span>
+        <span class="skill-pill">Snowflake</span>
+        <span class="skill-pill">AWS</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- Testimonials -->
+<section id="testimonials">
+  <p class="section-label reveal">Peer & Instructor Feedback</p>
+  <h2 class="section-title reveal">Testimonials</h2>
+  <div class="testi-grid">
+    <div class="testi-card reveal">
+      <div class="testi-mark">"</div>
+      <p class="testi-text">Group 4 and Group 6 both demonstrated exceptional ability to decode AI-generated images. Their prompt reconstructions showed real analytical depth — both teams are deserving winners of this activity.</p>
+      <div class="testi-author">
+        <div class="testi-avatar">DC</div>
+        <div>
+          <div class="testi-name">Prof. Deneen Collins</div>
+          <div class="testi-role">AI/ML Class · Indiana Wesleyan University</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card reveal">
+      <div class="testi-mark">"</div>
+      <p class="testi-text">Competing against Group 6 pushed us to think deeper about every visual detail. When the teacher announced both groups as winners and handed out candy and personal handwritten notebooks, it felt like genuine recognition of our hard work.</p>
+      <div class="testi-author">
+        <div class="testi-avatar">G4</div>
+        <div>
+          <div class="testi-name">Group 4 — Class Activity</div>
+          <div class="testi-role">Reverse Prompt Engineering · Co-Winners</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card reveal">
+      <div class="testi-mark">"</div>
+      <p class="testi-text">The teacher's gesture of gifting candy and personal handwritten notebooks to both winning groups made this one of the most memorable class activities. It showed how collaborative competition brings out the best analytical thinking in everyone.</p>
+      <div class="testi-author">
+        <div class="testi-avatar">G6</div>
+        <div>
+          <div class="testi-name">Group 6 — Class Activity</div>
+          <div class="testi-role">Reverse Prompt Engineering · Co-Winners</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- Contact -->
+<section class="contact-section" id="contact">
+  <p class="section-label reveal">Let's Connect</p>
+  <h2 class="contact-title reveal">Open to<br><em>Opportunities</em></h2>
+  <p class="contact-sub reveal">Available for roles in AI/ML, business analytics, and data strategy. Open to conversations about how analytical thinking and AI fluency can drive business transformation.</p>
+  <div class="contact-grid reveal">
+    <div>
+      <div class="citem-label">Email</div>
+      <div class="citem-value"><a href="mailto:ajmaddy25@gmail.com">ajmaddy25@gmail.com</a></div>
+    </div>
+    <div>
+      <div class="citem-label">Phone</div>
+      <div class="citem-value"><a href="tel:+17799397969">779-939-7969</a></div>
+    </div>
+    <div>
+      <div class="citem-label">Location</div>
+      <div class="citem-value">Chicago, Illinois</div>
+    </div>
+    <div>
+      <div class="citem-label">Status</div>
+      <div class="citem-value">Open to Opportunities</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>© 2026 Raja Ajay M · Artifact 02 — Reverse Prompt Engineering · Indiana Wesleyan University</p>
+</footer>
+
+<script>
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cursor.style.left=mx+'px'; cursor.style.top=my+'px'; });
+  (function animRing(){ rx+=(mx-rx)*0.15; ry+=(my-ry)*0.15; ring.style.left=rx+'px'; ring.style.top=ry+'px'; requestAnimationFrame(animRing); })();
+  document.querySelectorAll('a,button,.sample-card,.testi-card,.proj-block,.hm-item').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{ cursor.style.transform='translate(-50%,-50%) scale(2)'; ring.style.transform='translate(-50%,-50%) scale(1.5)'; ring.style.opacity='0.3'; });
+    el.addEventListener('mouseleave',()=>{ cursor.style.transform='translate(-50%,-50%) scale(1)'; ring.style.transform='translate(-50%,-50%) scale(1)'; ring.style.opacity='0.6'; });
+  });
+
+  /* Scroll reveal */
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  /* Skill bars */
+  const barObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.querySelectorAll('.skill-bar-fill').forEach(bar => {
+          bar.style.width = bar.dataset.width + '%';
+        });
+        barObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  document.querySelectorAll('#skills, #work').forEach(el => barObserver.observe(el));
+</script>
+</body>
+</html>
