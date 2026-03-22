@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Ethics — Autonomous Vehicle Case Study · Raja Ajay M</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --ink: #0d0d0d;
+    --paper: #f5f0e8;
+    --gold: #c9a84c;
+    --gold-light: #e8d5a3;
+    --muted: #6b6460;
+    --accent: #1a3a5c;
+    --rule: #d4c9b8;
+    --white: #ffffff;
+    --danger: #8b2020;
+    --safe: #1a5c3a;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); overflow-x: hidden; cursor: none; }
+
+  .cursor { width: 10px; height: 10px; background: var(--gold); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9999; transform: translate(-50%,-50%); transition: transform 0.1s ease; }
+  .cursor-ring { width: 36px; height: 36px; border: 1.5px solid var(--gold); border-radius: 50%; position: fixed; pointer-events: none; z-index: 9998; transform: translate(-50%,-50%); transition: all 0.25s ease; opacity: 0.6; }
+
+  /* Nav */
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; padding: 18px 60px; display: flex; justify-content: space-between; align-items: center; background: rgba(245,240,232,0.94); backdrop-filter: blur(12px); border-bottom: 1px solid var(--rule); }
+  .nav-brand { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--ink); text-decoration: none; }
+  .nav-links { display: flex; gap: 32px; list-style: none; }
+  .nav-links a { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); text-decoration: none; font-weight: 500; transition: color 0.2s; position: relative; }
+  .nav-links a::after { content:''; position:absolute; bottom:-3px; left:0; width:0; height:1px; background:var(--gold); transition:width 0.3s ease; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-links a:hover::after { width: 100%; }
+  .nav-back { display: inline-flex; align-items: center; gap: 8px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); text-decoration: none; font-weight: 500; transition: color 0.2s; }
+  .nav-back:hover { color: var(--gold); }
+  .nav-back:hover svg { transform: translateX(-3px); }
+  .nav-back svg { transition: transform 0.2s; }
+
+  /* Divider */
+  .section-divider { display: flex; align-items: center; gap: 20px; padding: 0 80px; margin: 16px 0; }
+  .divider-line { flex: 1; height: 1px; background: var(--rule); }
+  .divider-diamond { width: 8px; height: 8px; background: var(--gold); transform: rotate(45deg); flex-shrink: 0; }
+
+  section { padding: 80px 80px; }
+  .section-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--gold); font-weight: 500; margin-bottom: 10px; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 700; line-height: 1.1; color: var(--ink); margin-bottom: 48px; }
+
+  .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(28px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+  /* ── HERO ── */
+  .hero { min-height: 100vh; padding-top: 70px; position: relative; overflow: hidden; background: var(--ink); display: flex; align-items: center; }
+  .hero-bg { position: absolute; inset: 0; background: url('https://images.unsplash.com/photo-1557426272-fc759fdf7a8d?w=1600&q=80') center/cover no-repeat; opacity: 0.12; }
+  .hero-inner { position: relative; z-index: 2; padding: 80px; max-width: 900px; }
+  .hero-eyebrow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.25em; color: var(--gold); font-weight: 500; margin-bottom: 20px; opacity:0; animation: fadeUp 0.7s 0.2s forwards; }
+  .hero-title { font-family: 'Playfair Display', serif; font-size: clamp(2.8rem, 5.5vw, 5.5rem); font-weight: 900; line-height: 0.95; color: var(--paper); margin-bottom: 16px; opacity:0; animation: fadeUp 0.8s 0.35s forwards; }
+  .hero-title em { font-style: italic; color: var(--gold); }
+  .hero-sub { font-family: 'Playfair Display', serif; font-size: clamp(1rem, 1.8vw, 1.3rem); font-style: italic; color: rgba(245,240,232,0.55); margin-bottom: 40px; opacity:0; animation: fadeUp 0.8s 0.5s forwards; }
+  .hero-desc { font-size: 0.92rem; line-height: 1.8; color: rgba(245,240,232,0.7); max-width: 620px; margin-bottom: 48px; opacity:0; animation: fadeUp 0.8s 0.65s forwards; }
+  .hero-meta { display: flex; gap: 0; flex-wrap: wrap; opacity:0; animation: fadeUp 0.8s 0.8s forwards; }
+  .hm-item { padding: 20px 32px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); text-align: center; }
+  .hm-item + .hm-item { border-left: none; }
+  .hm-num { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 900; color: var(--gold); line-height: 1; margin-bottom: 4px; }
+  .hm-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.15em; color: rgba(245,240,232,0.45); }
+
+  /* ── ABOUT ── */
+  #about { background: var(--paper); }
+  .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+  .about-text { font-size: 0.92rem; line-height: 1.85; color: #3d3832; margin-bottom: 20px; }
+  .about-highlights { display: flex; flex-direction: column; gap: 12px; margin: 24px 0 32px; }
+  .hl-item { display: flex; align-items: flex-start; gap: 14px; padding: 16px; background: white; border: 1px solid var(--rule); }
+  .hl-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .hl-body { font-size: 0.84rem; line-height: 1.65; color: var(--muted); }
+  .hl-body strong { color: var(--ink); display: block; margin-bottom: 2px; }
+  .contact-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .contact-chip { display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border: 1px solid var(--rule); font-size: 0.75rem; color: var(--muted); text-decoration: none; transition: all 0.2s; }
+  .contact-chip:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* scenario box */
+  .scenario-box { background: var(--ink); padding: 40px; color: var(--paper); }
+  .scenario-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--gold); font-weight: 500; margin-bottom: 16px; }
+  .scenario-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: var(--paper); margin-bottom: 16px; line-height: 1.3; }
+  .scenario-text { font-size: 0.85rem; line-height: 1.8; color: rgba(245,240,232,0.7); margin-bottom: 28px; }
+  .scenario-choices { display: flex; flex-direction: column; gap: 12px; }
+  .choice { display: flex; gap: 14px; align-items: flex-start; padding: 16px; border: 1px solid rgba(255,255,255,0.08); }
+  .choice-a { border-left: 3px solid #c04040; }
+  .choice-b { border-left: 3px solid #4a8c6a; }
+  .choice-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 700; white-space: nowrap; padding-top: 2px; }
+  .choice-a .choice-label { color: #e06060; }
+  .choice-b .choice-label { color: #6abf90; }
+  .choice-text { font-size: 0.83rem; line-height: 1.65; color: rgba(245,240,232,0.75); }
+
+  /* ── WORK SAMPLES — Two Sides ── */
+  #work { background: white; }
+  .work-intro { font-size: 0.9rem; line-height: 1.8; color: var(--muted); max-width: 700px; margin-bottom: 48px; }
+  .sides-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 40px; }
+  .side-card { padding: 40px 36px; border: 1px solid var(--rule); }
+  .side-card.side-a { background: #fdf5f5; border-top: 4px solid #c04040; }
+  .side-card.side-b { background: #f5fdf8; border-top: 4px solid #3a8c5a; }
+  .side-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+  .side-a .side-title { color: #8b2020; }
+  .side-b .side-title { color: #1a5c3a; }
+  .side-tag { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 600; margin-bottom: 20px; }
+  .side-a .side-tag { color: #c04040; }
+  .side-b .side-tag { color: #3a8c5a; }
+  .side-points { display: flex; flex-direction: column; gap: 12px; }
+  .side-point { display: flex; gap: 12px; align-items: flex-start; }
+  .side-point-icon { font-size: 0.85rem; flex-shrink: 0; padding-top: 2px; }
+  .side-point-text { font-size: 0.84rem; line-height: 1.65; color: #3d3832; }
+
+  /* Care Ethics */
+  .care-ethics-box { background: var(--paper); border: 1px solid var(--rule); padding: 40px; margin-top: 3px; }
+  .care-ethics-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--gold); font-weight: 500; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+  .care-ethics-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: var(--ink); margin-bottom: 16px; }
+  .care-ethics-intro { font-size: 0.88rem; line-height: 1.8; color: var(--muted); margin-bottom: 28px; max-width: 780px; }
+  .care-ethics-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 3px; }
+  .ce-card { background: white; border: 1px solid var(--rule); padding: 28px; position: relative; overflow: hidden; transition: all 0.3s ease; }
+  .ce-card::before { content:''; position:absolute; top:0; left:0; width:3px; height:0; background:var(--gold); transition:height 0.4s ease; }
+  .ce-card:hover::before { height:100%; }
+  .ce-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,0,0,0.07); }
+  .ce-icon { font-size: 1.5rem; margin-bottom: 12px; }
+  .ce-name { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+  .ce-tag { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--gold); font-weight: 600; margin-bottom: 12px; }
+  .ce-text { font-size: 0.82rem; line-height: 1.7; color: var(--muted); margin-bottom: 12px; }
+  .ce-verdict { font-size: 0.78rem; font-style: italic; color: var(--accent); border-left: 2px solid var(--gold); padding-left: 10px; line-height: 1.6; }
+  .legal-box { background: var(--paper); border: 1px solid var(--rule); padding: 40px; margin-top: 3px; }
+  .legal-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--gold); font-weight: 500; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+  .legal-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: var(--ink); margin-bottom: 16px; }
+  .legal-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+  .legal-item { background: white; border: 1px solid var(--rule); padding: 20px; }
+  .legal-item-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--gold); font-weight: 600; margin-bottom: 8px; }
+  .legal-item-text { font-size: 0.82rem; line-height: 1.65; color: var(--muted); }
+
+  /* Conclusion */
+  .conclusion-box { background: var(--ink); padding: 40px; margin-top: 3px; }
+  .conclusion-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--gold); font-weight: 500; margin-bottom: 12px; }
+  .conclusion-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 700; color: var(--paper); margin-bottom: 14px; }
+  .conclusion-text { font-size: 0.88rem; line-height: 1.8; color: rgba(245,240,232,0.75); }
+
+  /* ── PROJECT ── */
+  #project { background: var(--paper); }
+  .proj-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+  .proj-block { background: white; border: 1px solid var(--rule); padding: 36px; }
+  .proj-block-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--gold); font-weight: 500; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+  .proj-block-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: var(--ink); margin-bottom: 14px; }
+  .proj-block-text { font-size: 0.85rem; line-height: 1.75; color: var(--muted); }
+  .proj-block ul { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .proj-block ul li { font-size: 0.84rem; line-height: 1.65; color: var(--muted); padding-left: 18px; position: relative; }
+  .proj-block ul li::before { content: '—'; position: absolute; left: 0; color: var(--gold); font-weight: 700; }
+  .proj-full { grid-column: 1 / -1; background: var(--ink); border: none; padding: 40px; }
+  .proj-full .proj-block-label { border-color: rgba(255,255,255,0.1); }
+  .proj-full .proj-block-title { color: var(--paper); }
+  .proj-full .proj-block-text { color: rgba(245,240,232,0.7); }
+  .proj-full ul li { color: rgba(245,240,232,0.7); }
+  .proj-full ul li::before { color: var(--gold); }
+
+  /* ── SKILLS ── */
+  #skills { background: #f0ebe0; }
+  .skills-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+  .skill-group-title { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--gold); font-weight: 500; margin-bottom: 24px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+  .skill-bars { display: flex; flex-direction: column; gap: 20px; }
+  .skill-bar-header { display: flex; justify-content: space-between; margin-bottom: 7px; }
+  .skill-bar-name { font-size: 0.85rem; color: var(--ink); font-weight: 500; }
+  .skill-bar-pct { font-size: 0.72rem; color: var(--gold); font-weight: 500; }
+  .skill-bar-track { height: 3px; background: var(--rule); }
+  .skill-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold), #e8c96a); width: 0; transition: width 1.2s cubic-bezier(0.4,0,0.2,1); }
+  .skill-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+  .skill-pill { padding: 6px 14px; border: 1px solid var(--rule); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); background: white; transition: all 0.2s; }
+  .skill-pill:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ── TESTIMONIALS ── */
+  #testimonials { background: var(--ink); }
+  #testimonials .section-label { color: var(--gold); }
+  #testimonials .section-title { color: var(--paper); margin-bottom: 40px; }
+  .testi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; }
+  .testi-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 36px 32px; transition: background 0.2s; }
+  .testi-card:hover { background: rgba(201,168,76,0.07); }
+  .testi-mark { font-family: 'Playfair Display', serif; font-size: 4rem; color: var(--gold); opacity: 0.3; line-height: 1; margin-bottom: 12px; }
+  .testi-text { font-family: 'Playfair Display', serif; font-size: 0.93rem; font-style: italic; line-height: 1.75; color: rgba(245,240,232,0.82); margin-bottom: 24px; }
+  .testi-author { display: flex; align-items: center; gap: 12px; }
+  .testi-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; font-family: 'Playfair Display', serif; font-weight: 700; color: var(--ink); font-size: 0.85rem; flex-shrink: 0; }
+  .testi-name { font-size: 0.82rem; font-weight: 500; color: var(--paper); }
+  .testi-role { font-size: 0.68rem; color: rgba(245,240,232,0.4); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+
+  /* ── CONTACT ── */
+  .contact-section { background: var(--paper); padding: 80px; text-align: center; }
+  .contact-title { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 900; line-height: 1.05; margin-bottom: 16px; }
+  .contact-title em { font-style: italic; color: var(--gold); }
+  .contact-sub { font-size: 0.88rem; line-height: 1.75; color: var(--muted); max-width: 480px; margin: 0 auto 40px; }
+  .contact-grid { display: flex; justify-content: center; gap: 48px; flex-wrap: wrap; }
+  .citem-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--gold); font-weight: 500; margin-bottom: 6px; }
+  .citem-value { font-size: 0.9rem; color: var(--ink); }
+  .citem-value a { color: var(--ink); text-decoration: none; transition: color 0.2s; }
+  .citem-value a:hover { color: var(--gold); }
+
+  footer { background: #050505; color: var(--muted); text-align: center; padding: 24px; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+  @media (max-width: 900px) {
+    nav { padding: 16px 24px; }
+    .nav-links { display: none; }
+    section { padding: 56px 24px; }
+    .section-divider { padding: 0 24px; }
+    .hero-inner { padding: 80px 24px 60px; }
+    .about-grid, .proj-grid, .skills-layout { grid-template-columns: 1fr; }
+    .sides-grid, .legal-grid { grid-template-columns: 1fr; }
+    .testi-grid { grid-template-columns: 1fr; }
+    .contact-section { padding: 56px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<nav>
+  <span class="nav-brand">Artifact 03 — AI Ethics Case Study</span>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#work">Case Analysis</a></li>
+    <li><a href="#project">Project</a></li>
+    <li><a href="#skills">Skills</a></li>
+    <li><a href="#testimonials">Testimonials</a></li>
+  </ul>
+  <a href="index.html" class="nav-back">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Back to Portfolio
+  </a>
+</nav>
+
+<!-- Hero -->
+<section class="hero" id="top">
+  <div class="hero-bg"></div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Artifact 03 · AI Ethics · Week 3 Case Study</div>
+    <h1 class="hero-title">The <em>Trolley</em><br>Problem<br>Reimagined</h1>
+    <p class="hero-sub">When an autonomous vehicle must choose — who decides?</p>
+    <p class="hero-desc">A group case study analyzing the ethical, legal, and moral dimensions of autonomous vehicle decision-making. When an AV must choose between hitting pedestrians or injuring its own passenger — there is no easy answer. Our group explored both sides through a legal and liability lens to understand why this question has no simple solution.</p>
+    <div class="hero-meta">
+      <div class="hm-item"><div class="hm-num">2</div><div class="hm-label">Sides Analyzed</div></div>
+      <div class="hm-item"><div class="hm-num">G4</div><div class="hm-label">Group 4</div></div>
+      <div class="hm-item"><div class="hm-num">AI</div><div class="hm-label">Ethics</div></div>
+      <div class="hm-item"><div class="hm-num">⚖️</div><div class="hm-label">Legal Focus</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- About -->
+<section id="about">
+  <p class="section-label reveal">About Me</p>
+  <h2 class="section-title reveal">The Analyst<br>Behind the Study</h2>
+  <div class="about-grid">
+    <div>
+      <p class="about-text reveal">I'm Raja Ajay M — a Business Analytics professional and AI/ML student at Indiana Wesleyan University. This case study artifact showcases my ability to critically evaluate complex AI ethics scenarios, analyze competing perspectives, and apply structured thinking to problems that have no clear right answer.</p>
+      <p class="about-text reveal">As someone with a background in data architecture and business analysis, I understand that the hardest decisions in AI are not technical — they are ethical. This case study directly addresses one of the most debated questions in AI today: how should autonomous systems be programmed to make life-or-death decisions?</p>
+      <div class="about-highlights reveal">
+        <div class="hl-item">
+          <div class="hl-icon">🎯</div>
+          <div class="hl-body"><strong>Career Goal</strong>Bridge analytical expertise with ethical AI thinking to help organizations deploy AI responsibly and effectively.</div>
+        </div>
+        <div class="hl-item">
+          <div class="hl-icon">⚖️</div>
+          <div class="hl-body"><strong>Unique Selling Point</strong>I approach AI ethics not as a philosophy exercise but as a practical business and legal risk management problem.</div>
+        </div>
+        <div class="hl-item">
+          <div class="hl-icon">👥</div>
+          <div class="hl-body"><strong>Group 4 — Week 3</strong>This activity was completed collaboratively with Group 4, the same team from the Week 2 Reverse Prompt Engineering activity.</div>
+        </div>
+      </div>
+      <div class="contact-row reveal">
+        <a href="mailto:ajmaddy25@gmail.com" class="contact-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          ajmaddy25@gmail.com
+        </a>
+        <a href="tel:+17799397969" class="contact-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.45 2 2 0 0 1 3.59 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.73a16 16 0 0 0 6 6l.92-.92a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16z"/></svg>
+          779-939-7969
+        </a>
+        <a href="#" class="contact-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Chicago, Illinois
+        </a>
+      </div>
+    </div>
+    <div class="scenario-box reveal">
+      <div class="scenario-label">The Case Scenario</div>
+      <div class="scenario-title">An autonomous vehicle faces an unavoidable collision. What should it do?</div>
+      <p class="scenario-text">A self-driving car is travelling at normal speed when a sudden obstacle appears. The vehicle's AI must make a split-second decision between two outcomes — there is no time for human intervention. Both outcomes result in harm. The question is: who bears the cost?</p>
+      <div class="scenario-choices">
+        <div class="choice choice-a">
+          <div class="choice-label">Option A</div>
+          <div class="choice-text">Swerve into the curb — the passenger inside the vehicle is injured. Pedestrians on the sidewalk are safe.</div>
+        </div>
+        <div class="choice choice-b">
+          <div class="choice-label">Option B</div>
+          <div class="choice-text">Stay on course — pedestrians on the road are hit. The passenger inside the vehicle is unharmed.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- Work Samples -->
+<section id="work" style="background:white;">
+  <p class="section-label reveal">Work Samples</p>
+  <h2 class="section-title reveal">Both Sides of<br>the Argument</h2>
+  <p class="work-intro reveal">Our group analyzed both options through a legal and liability lens, with Care Ethics as our assigned ethical framework. Care Ethics focuses on relationships and responsibilities rather than abstract rules — asking who we owe care to and why. Neither option is clearly right or wrong — each carries its own moral weight and legal consequence. Here is how we broke down both sides.</p>
+
+  <div class="sides-grid">
+    <div class="side-card side-a reveal">
+      <div class="side-tag">Option A — Protect Pedestrians</div>
+      <div class="side-title">Swerve Into the Curb</div>
+      <div class="side-points">
+        <div class="side-point">
+          <div class="side-point-icon">⚖️</div>
+          <div class="side-point-text"><strong>Legal Argument:</strong> Manufacturers could argue the vehicle prioritized the greater public good — protecting multiple people over one paying customer — which may reduce mass liability claims.</div>
+        </div>
+        <div class="side-point">
+          <div class="side-point-icon">📋</div>
+          <div class="side-point-text"><strong>Liability:</strong> The passenger may have legal grounds to sue the manufacturer for programming the vehicle to harm them. This creates a direct manufacturer-to-passenger liability risk.</div>
+        </div>
+        <div class="side-point">
+          <div class="side-point-icon">🤝</div>
+          <div class="side-point-text"><strong>Public Trust:</strong> If AVs are known to sacrifice passengers, consumers may refuse to adopt the technology — slowing down innovation and industry growth.</div>
+        </div>
+        <div class="side-point">
+          <div class="side-point-icon">❓</div>
+          <div class="side-point-text"><strong>Question Raised:</strong> Did the passenger consent to being harmed when they chose to ride in an AV? Is that consent implied by the terms of use?</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-card side-b reveal">
+      <div class="side-tag">Option B — Protect Passenger</div>
+      <div class="side-title">Stay on Course</div>
+      <div class="side-points">
+        <div class="side-point">
+          <div class="side-point-icon">⚖️</div>
+          <div class="side-point-text"><strong>Legal Argument:</strong> The manufacturer has a direct duty of care to the passenger — the paying customer — which may create a stronger contractual obligation than to third-party pedestrians.</div>
+        </div>
+        <div class="side-point">
+          <div class="side-point-icon">📋</div>
+          <div class="side-point-text"><strong>Liability:</strong> Pedestrians or their families could sue the manufacturer for programming a vehicle that treats their lives as secondary. Class action suits become a serious risk.</div>
+        </div>
+        <div class="side-point">
+          <div class="side-point-icon">🤝</div>
+          <div class="side-point-text"><strong>Public Trust:</strong> Passengers may feel safer knowing the AV prioritizes their wellbeing — increasing adoption rates and commercial viability of autonomous vehicles.</div>
+        </div>
+        <div class="side-point">
+          <div class="side-point-icon">❓</div>
+          <div class="side-point-text"><strong>Question Raised:</strong> Should pedestrians who are illegally in the road be treated differently than those following traffic rules? Does context change the answer?</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legal Analysis -->
+  <div class="legal-box reveal">
+    <div class="legal-label">Legal & Liability Deep Dive</div>
+    <div class="legal-title">Who Is Responsible When an AV Causes Harm?</div>
+    <div class="legal-grid">
+      <div class="legal-item">
+        <div class="legal-item-label">Manufacturer Liability</div>
+        <div class="legal-item-text">The company that programmed the decision-making algorithm bears the most responsibility. The ethical choice was made in a boardroom, not on the road — making it a product design decision subject to product liability law.</div>
+      </div>
+      <div class="legal-item">
+        <div class="legal-item-label">Government Regulation</div>
+        <div class="legal-item-text">Currently, no universal legal standard exists for AV decision-making in life-or-death scenarios. Different states and countries have different frameworks, creating a patchwork of legal uncertainty for manufacturers.</div>
+      </div>
+      <div class="legal-item">
+        <div class="legal-item-label">Insurance & Risk</div>
+        <div class="legal-item-text">Traditional auto insurance is built around human error. AV accidents shift liability from driver to manufacturer — fundamentally changing how insurance companies assess and price risk in the autonomous vehicle market.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Care Ethics -->
+  <div class="care-ethics-box reveal">
+    <div class="care-ethics-label">Group 4 — Assigned Ethical Framework</div>
+    <div class="care-ethics-title">Care Ethics — Our Group's Lens</div>
+    <p class="care-ethics-intro">Care Ethics, developed by philosophers Carol Gilligan and Nel Noddings, focuses on relationships, responsibilities, and context rather than abstract rules or calculations. It asks: <em>who do we have a relationship with, and what do we owe them?</em> Our group was assigned this framework to analyze the AV dilemma — and it produced some of the most nuanced insights of our discussion.</p>
+    <div class="care-ethics-grid">
+      <div class="ce-card">
+        <div class="ce-icon">🤝</div>
+        <div class="ce-name">Relationship with the Passenger</div>
+        <div class="ce-tag">Direct Responsibility</div>
+        <div class="ce-text">The passenger has entered into a direct relationship with the AV manufacturer — they paid for a service and placed their trust and physical safety in the hands of the system. Care Ethics argues this creates a primary, personal duty of care that cannot be overridden by abstract calculations about numbers of people.</div>
+        <div class="ce-verdict">"You cannot program a machine to betray the person who trusted it."</div>
+      </div>
+      <div class="ce-card">
+        <div class="ce-icon">🚶</div>
+        <div class="ce-name">Relationship with Pedestrians</div>
+        <div class="ce-tag">Broader Community Care</div>
+        <div class="ce-text">Care Ethics also recognizes obligations to the broader community. Pedestrians are vulnerable members of a shared public space — and a society that allows machines to harm them without accountability fails its duty of communal care. The relationship is less direct, but still morally significant.</div>
+        <div class="ce-verdict">"Care does not stop at the car door — it extends to everyone sharing the road."</div>
+      </div>
+      <div class="ce-card">
+        <div class="ce-icon">⚖️</div>
+        <div class="ce-name">Context Over Rules</div>
+        <div class="ce-tag">Why There Is No Fixed Answer</div>
+        <div class="ce-text">Care Ethics rejects one-size-fits-all rules. It insists that context matters — who is involved, what relationships exist, what the specific circumstances are. This is exactly why our group concluded there is no single correct answer. The right response depends on the full context of each situation, not a pre-programmed formula.</div>
+        <div class="ce-verdict">"The trolley problem assumes a fixed rule. Care Ethics says: look at the people first."</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conclusion -->
+  <div class="conclusion-box reveal">
+    <div class="conclusion-label">Group 4 — Our Conclusion</div>
+    <div class="conclusion-title">There is no right answer — and that itself is the most important finding.</div>
+    <p class="conclusion-text">After analyzing both sides through a legal and liability lens, our group concluded that this is not a problem with a correct solution — it is a problem that reveals a fundamental gap in current AI ethics frameworks and legal systems. The real question is not which option the AV should choose, but who has the authority to make that choice, and how transparent that decision should be to the public. Until governments, manufacturers, and society reach a consensus, autonomous vehicles will continue to carry this unresolved ethical weight.</p>
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- Project Description -->
+<section id="project">
+  <p class="section-label reveal">Project Description</p>
+  <h2 class="section-title reveal">Context, Goals<br>& Outcomes</h2>
+  <div class="proj-grid">
+    <div class="proj-block reveal">
+      <div class="proj-block-label">Context</div>
+      <div class="proj-block-title">Class Activity Overview</div>
+      <p class="proj-block-text">This was a group case study activity in Week 3 of the AI/ML course at Indiana Wesleyan University, led by Prof. Deneen Collins. Group 4 was tasked with analyzing the ethical dilemma faced by autonomous vehicles when forced to choose between two harmful outcomes in an unavoidable collision scenario.</p>
+    </div>
+    <div class="proj-block reveal">
+      <div class="proj-block-label">Goal</div>
+      <div class="proj-block-title">What We Were Trying to Achieve</div>
+      <p class="proj-block-text">The goal was to develop critical thinking around AI ethics — understanding that AI systems do not just process data, they embed values. By analyzing both sides of a real-world dilemma, we built the ability to identify ethical trade-offs, legal risks, and societal implications of AI decision-making.</p>
+    </div>
+    <div class="proj-block reveal">
+      <div class="proj-block-label">Challenges Faced</div>
+      <div class="proj-block-title">What Made It Difficult</div>
+      <div class="proj-block-text">
+        <ul>
+          <li>Both options resulted in harm — there was no "safe" choice, which made it hard to argue for either side convincingly.</li>
+          <li>Legal frameworks for AV liability are still evolving — finding reliable reference points for our legal analysis was challenging.</li>
+          <li>Group members had different personal views which required respectful debate to reach a balanced analysis.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proj-block reveal">
+      <div class="proj-block-label">Solutions & Learnings</div>
+      <div class="proj-block-title">How We Worked Through It</div>
+      <div class="proj-block-text">
+        <ul>
+          <li>Focused our analysis on the legal and liability angle rather than personal moral opinion — giving us a more structured framework.</li>
+          <li>Agreed as a group that "no clear answer" was itself a valid and honest conclusion rather than forcing a decision.</li>
+          <li>Learned that the most valuable skill in AI ethics is not picking a side — it is asking the right questions.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proj-block proj-full reveal">
+      <div class="proj-block-label">Key Takeaway</div>
+      <div class="proj-block-title">Why AI Ethics Matters for Business & Leadership</div>
+      <p class="proj-block-text">This case study showed that as AI systems become more autonomous, the ethical choices embedded in their programming become business and legal decisions — not just philosophical ones. Leaders and analysts working with AI must be able to identify these embedded value judgments, understand their legal implications, and communicate them transparently to stakeholders. The trolley problem is no longer a thought experiment — it is a product specification.</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- Skills -->
+<section id="skills">
+  <p class="section-label reveal">Competencies</p>
+  <h2 class="section-title reveal">Skills &<br>Technologies</h2>
+  <div class="skills-layout">
+    <div class="reveal">
+      <div class="skill-group-title">AI Ethics & Critical Thinking</div>
+      <div class="skill-bars">
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">AI Ethics Analysis</span><span class="skill-bar-pct">85%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="85"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Legal & Liability Thinking</span><span class="skill-bar-pct">80%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="80"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Critical Reasoning</span><span class="skill-bar-pct">90%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="90"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Group Collaboration</span><span class="skill-bar-pct">88%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="88"></div></div>
+        </div>
+      </div>
+      <div class="skill-pills">
+        <span class="skill-pill">AI Ethics</span>
+        <span class="skill-pill">Care Ethics</span>
+        <span class="skill-pill">Case Study Analysis</span>
+        <span class="skill-pill">Risk Assessment</span>
+        <span class="skill-pill">Legal Thinking</span>
+      </div>
+    </div>
+    <div class="reveal">
+      <div class="skill-group-title">Business & Analytics Skills</div>
+      <div class="skill-bars">
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Business Analytics</span><span class="skill-bar-pct">95%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="95"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Stakeholder Communication</span><span class="skill-bar-pct">88%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="88"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">AI/ML Understanding</span><span class="skill-bar-pct">85%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="85"></div></div>
+        </div>
+        <div>
+          <div class="skill-bar-header"><span class="skill-bar-name">Change Leadership</span><span class="skill-bar-pct">82%</span></div>
+          <div class="skill-bar-track"><div class="skill-bar-fill" data-width="82"></div></div>
+        </div>
+      </div>
+      <div class="skill-pills">
+        <span class="skill-pill">SQL</span>
+        <span class="skill-pill">Python</span>
+        <span class="skill-pill">Power BI</span>
+        <span class="skill-pill">Snowflake</span>
+        <span class="skill-pill">AWS</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- Testimonials -->
+<section id="testimonials">
+  <p class="section-label reveal">Peer & Instructor Feedback</p>
+  <h2 class="section-title reveal">Testimonials</h2>
+  <div class="testi-grid">
+    <div class="testi-card reveal">
+      <div class="testi-mark">"</div>
+      <p class="testi-text">Group 4 demonstrated mature ethical reasoning in this case study. Rather than forcing a conclusion, they correctly identified that the absence of a clear answer is itself a critical insight about the current state of AI ethics and law.</p>
+      <div class="testi-author">
+        <div class="testi-avatar">DC</div>
+        <div>
+          <div class="testi-name">Prof. Deneen Collins</div>
+          <div class="testi-role">AI/ML Instructor · Indiana Wesleyan University</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card reveal">
+      <div class="testi-mark">"</div>
+      <p class="testi-text">Working through this with Group 4 made me realize how much legal thinking matters in AI. Raja kept bringing us back to the liability angle which gave our whole analysis a stronger, more grounded structure.</p>
+      <div class="testi-author">
+        <div class="testi-avatar">G4</div>
+        <div>
+          <div class="testi-name">Group 4 Member</div>
+          <div class="testi-role">AI/ML Class · Indiana Wesleyan University</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card reveal">
+      <div class="testi-mark">"</div>
+      <p class="testi-text">This case study was one of the most thought-provoking activities of the course. It showed that AI ethics is not abstract — it has real consequences for companies, consumers, and society. Group 4 handled the complexity really well.</p>
+      <div class="testi-author">
+        <div class="testi-avatar">CM</div>
+        <div>
+          <div class="testi-name">Classmate</div>
+          <div class="testi-role">AI/ML Program · IWU</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
+
+<!-- Contact -->
+<section class="contact-section" id="contact">
+  <p class="section-label reveal">Let's Connect</p>
+  <h2 class="contact-title reveal">Open to<br><em>Opportunities</em></h2>
+  <p class="contact-sub reveal">Available for roles in AI/ML, business analytics, and data strategy. Open to conversations about responsible AI and how ethical thinking drives better business outcomes.</p>
+  <div class="contact-grid reveal">
+    <div>
+      <div class="citem-label">Email</div>
+      <div class="citem-value"><a href="mailto:ajmaddy25@gmail.com">ajmaddy25@gmail.com</a></div>
+    </div>
+    <div>
+      <div class="citem-label">Phone</div>
+      <div class="citem-value"><a href="tel:+17799397969">779-939-7969</a></div>
+    </div>
+    <div>
+      <div class="citem-label">Location</div>
+      <div class="citem-value">Chicago, Illinois</div>
+    </div>
+    <div>
+      <div class="citem-label">Status</div>
+      <div class="citem-value">Open to Opportunities</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>© 2026 Raja Ajay M · Artifact 03 — AI Ethics Case Study · Indiana Wesleyan University</p>
+</footer>
+
+<script>
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx=0,my=0,rx=0,ry=0;
+  document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cursor.style.left=mx+'px'; cursor.style.top=my+'px'; });
+  (function animRing(){ rx+=(mx-rx)*0.15; ry+=(my-ry)*0.15; ring.style.left=rx+'px'; ring.style.top=ry+'px'; requestAnimationFrame(animRing); })();
+  document.querySelectorAll('a,button,.side-card,.testi-card,.proj-block,.legal-item').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{ cursor.style.transform='translate(-50%,-50%) scale(2)'; ring.style.transform='translate(-50%,-50%) scale(1.5)'; ring.style.opacity='0.3'; });
+    el.addEventListener('mouseleave',()=>{ cursor.style.transform='translate(-50%,-50%) scale(1)'; ring.style.transform='translate(-50%,-50%) scale(1)'; ring.style.opacity='0.6'; });
+  });
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  const barObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.querySelectorAll('.skill-bar-fill').forEach(bar => {
+          bar.style.width = bar.dataset.width + '%';
+        });
+        barObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  document.querySelectorAll('#skills').forEach(el => barObserver.observe(el));
+</script>
+</body>
+</html>
