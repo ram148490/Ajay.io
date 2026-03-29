@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Bias in Hiring — Portfolio Artifact 04</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;0,900;1,300;1,600&family=DM+Mono:wght@300;400;500&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0e0e0e;
+      --surface: #161616;
+      --card: #1c1c1c;
+      --border: #2a2a2a;
+      --accent: #e8c547;
+      --accent2: #e85447;
+      --accent3: #47c5e8;
+      --text: #f0ede6;
+      --muted: #888880;
+      --green: #6fcf97;
+      --red: #eb5757;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Cabinet Grotesk', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* HERO */
+    .hero {
+      position: relative;
+      padding: 80px 40px 60px;
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -100px; right: -100px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(232,197,71,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .tag {
+      display: inline-block;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 4px 12px;
+      border-radius: 2px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      font-weight: 900;
+      line-height: 1.05;
+      max-width: 800px;
+      margin-bottom: 20px;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 15px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.04em;
+    }
+
+    /* LAYOUT */
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    section {
+      padding: 60px 40px;
+      border-bottom: 1px solid var(--border);
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    h2 {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(1.6rem, 3vw, 2.4rem);
+      font-weight: 600;
+      margin-bottom: 20px;
+      line-height: 1.2;
+    }
+
+    p {
+      font-size: 15px;
+      line-height: 1.8;
+      color: #c8c5be;
+      max-width: 720px;
+    }
+
+    /* RESUME CARDS */
+    .resume-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .resume-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 24px;
+      position: relative;
+      transition: transform 0.2s, border-color 0.2s;
+      cursor: pointer;
+    }
+
+    .resume-card:hover { transform: translateY(-3px); }
+
+    .resume-card.ai-pick { border-color: var(--red); }
+    .resume-card.human-pick { border-color: var(--green); }
+    .resume-card.ai-pick::before {
+      content: '🤖 AI Picked';
+      position: absolute; top: -12px; left: 16px;
+      background: var(--red); color: white;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      padding: 3px 10px; border-radius: 2px;
+      font-family: 'DM Mono', monospace;
+    }
+    .resume-card.human-pick::before {
+      content: '✓ Class Picked';
+      position: absolute; top: -12px; left: 16px;
+      background: var(--green); color: #0e0e0e;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      padding: 3px 10px; border-radius: 2px;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .candidate-name {
+      font-family: 'Fraunces', serif;
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .trait-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      margin-top: 10px;
+    }
+
+    .trait-list li {
+      font-size: 12.5px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .trait-list li .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+
+    .trait-list li.bias .dot { background: var(--red); }
+    .trait-list li.strength .dot { background: var(--green); }
+    .trait-list li.neutral .dot { background: var(--accent); }
+
+    /* VERDICT BANNER */
+    .verdict {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 4px;
+      padding: 24px 28px;
+      margin-top: 32px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .verdict-icon { font-size: 2rem; flex-shrink: 0; }
+    .verdict-text { font-size: 14px; line-height: 1.7; color: #c8c5be; }
+    .verdict-text strong { color: var(--text); }
+
+    /* BIAS BREAKDOWN */
+    .bias-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .bias-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px;
+    }
+
+    .bias-icon { font-size: 1.8rem; margin-bottom: 10px; }
+    .bias-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 8px;
+    }
+    .bias-desc { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* VOTE BAR */
+    .vote-section { margin-top: 32px; }
+    .vote-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .vote-bar-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      height: 36px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .vote-bar-fill {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding-left: 12px;
+      font-size: 12px;
+      font-family: 'DM Mono', monospace;
+      font-weight: 500;
+      transition: width 1.5s ease;
+    }
+    .vote-bar-fill.green { background: rgba(111,207,151,0.2); color: var(--green); border-right: 2px solid var(--green); }
+    .vote-bar-fill.red   { background: rgba(235,87,87,0.2);   color: var(--red);   border-right: 2px solid var(--red); }
+
+    /* REFLECTION */
+    .reflection-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 36px;
+      position: relative;
+      margin-top: 32px;
+    }
+
+    .reflection-box::before {
+      content: '"';
+      font-family: 'Fraunces', serif;
+      font-size: 8rem;
+      color: rgba(232,197,71,0.08);
+      position: absolute;
+      top: -10px; left: 20px;
+      line-height: 1;
+      pointer-events: none;
+    }
+
+    .reflection-box p {
+      position: relative;
+      z-index: 1;
+      font-size: 15px;
+      line-height: 1.85;
+      color: #c8c5be;
+      max-width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .reflection-box p:last-child { margin-bottom: 0; }
+
+    .reflection-box p strong { color: var(--text); }
+
+    /* TAKEAWAYS */
+    .takeaway-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    .takeaway-list li {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 16px 20px;
+      font-size: 14px;
+      color: #c8c5be;
+      line-height: 1.6;
+    }
+
+    .takeaway-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      width: 24px; height: 24px;
+      border-radius: 2px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* FOOTER */
+    footer {
+      text-align: center;
+      padding: 40px;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero, section { animation: fadeUp 0.6s ease both; }
+    section:nth-child(2) { animation-delay: 0.1s; }
+    section:nth-child(3) { animation-delay: 0.2s; }
+    section:nth-child(4) { animation-delay: 0.3s; }
+    section:nth-child(5) { animation-delay: 0.4s; }
+    section:nth-child(6) { animation-delay: 0.5s; }
+  </style>
+</head>
+<body>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="tag">Portfolio Artifact 04 — Week 4</div>
+    <h1>When AI Hires <em>Like Us</em> — At Our Worst</h1>
+    <p class="hero-sub">AI Bias in Hiring · Cognitive Bias · Change Leadership · Raja Ajay M</p>
+  </div>
+
+  <!-- OVERVIEW -->
+  <section>
+    <div class="section-label">Overview</div>
+    <h2>The Activity</h2>
+    <p>
+      In class, our professor presented a hiring simulation. Four resumes were evaluated — not by a fair standard,
+      but by a biased AI model trained on flawed criteria: cultural "bro fit," whether the candidate played lacrosse,
+      and whether their resume used Times New Roman font. Our job was to decide who was the right hire, and then
+      compare our group's reasoning against the AI's decision.
+    </p>
+  </section>
+
+  <!-- RESUME COMPARISON -->
+  <section>
+    <div class="section-label">The Candidates</div>
+    <h2>Four Resumes. One Biased Filter.</h2>
+    <p>Here's who was in the running — and what the AI was actually looking for.</p>
+
+    <div class="resume-grid">
+
+      <div class="resume-card">
+        <div class="candidate-name">Candidate A</div>
+        <ul class="trait-list">
+          <li class="bias"><span class="dot"></span>Maternity gap in employment</li>
+          <li class="neutral"><span class="dot"></span>Times New Roman font ✓</li>
+          <li class="bias"><span class="dot"></span>No lacrosse background</li>
+          <li class="bias"><span class="dot"></span>Penalized for life circumstance</li>
+        </ul>
+      </div>
+
+      <div class="resume-card ai-pick">
+        <div class="candidate-name">Candidate B</div>
+        <ul class="trait-list">
+          <li class="strength"><span class="dot"></span>Harvard graduate</li>
+          <li class="bias"><span class="dot"></span>Selfie photo in resume</li>
+          <li class="bias"><span class="dot"></span>No Times New Roman</li>
+          <li class="strength"><span class="dot"></span>Lacrosse player ✓</li>
+        </ul>
+      </div>
+
+      <div class="resume-card human-pick">
+        <div class="candidate-name">Candidate C</div>
+        <ul class="trait-list">
+          <li class="strength"><span class="dot"></span>Relevant Google experience ✓</li>
+          <li class="neutral"><span class="dot"></span>Former Team Lead</li>
+          <li class="bias"><span class="dot"></span>Flagged as "overqualified"</li>
+          <li class="bias"><span class="dot"></span>No lacrosse, no TNR font</li>
+        </ul>
+      </div>
+
+      <div class="resume-card">
+        <div class="candidate-name">Candidate D</div>
+        <ul class="trait-list">
+          <li class="strength"><span class="dot"></span>Required experience ✓</li>
+          <li class="neutral"><span class="dot"></span>Times New Roman font ✓</li>
+          <li class="bias"><span class="dot"></span>No lacrosse background</li>
+          <li class="bias"><span class="dot"></span>Still filtered out by AI</li>
+        </ul>
+      </div>
+
+    </div>
+
+    <div class="verdict">
+      <div class="verdict-icon">⚖️</div>
+      <div class="verdict-text">
+        <strong>The AI chose Candidate B</strong> — the lacrosse player with a Harvard degree and a selfie on their resume —
+        because they matched the biased training criteria. <strong>5 out of 6 class groups chose Candidate C</strong>,
+        the woman with real Google experience and leadership background. The AI ignored merit entirely.
+      </div>
+    </div>
+  </section>
+
+  <!-- CLASS VOTE -->
+  <section>
+    <div class="section-label">Class Results</div>
+    <h2>How the Class Voted</h2>
+    <p>Out of 6 groups, here's how the decisions split — and what it reveals about human vs. AI judgment.</p>
+
+    <div class="vote-section" style="margin-top: 28px;">
+      <div class="vote-label">5 of 6 groups → Candidate C (Google Experience Lady)</div>
+      <div class="vote-bar-wrap">
+        <div class="vote-bar-fill green" style="width: 83%;">83% of groups — merit-based choice</div>
+      </div>
+
+      <div class="vote-label">1 of 6 groups → Candidate B (Lacrosse Player)</div>
+      <div class="vote-bar-wrap">
+        <div class="vote-bar-fill red" style="width: 17%;">17% — aligned with AI bias</div>
+      </div>
+
+      <div class="verdict" style="border-left-color: var(--accent2);">
+        <div class="verdict-icon">💡</div>
+        <div class="verdict-text">
+          The professor pointed out that the one group who chose the lacrosse player made the <strong>same biased decision as the AI</strong>.
+          This wasn't a coincidence — it showed that AI doesn't invent bias, it <strong>learns and amplifies the biases already inside us</strong>.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BIAS BREAKDOWN -->
+  <section>
+    <div class="section-label">Bias Analysis</div>
+    <h2>What Biases Were at Play?</h2>
+
+    <div class="bias-grid">
+      <div class="bias-card">
+        <div class="bias-icon">👶</div>
+        <div class="bias-title">Gender Bias</div>
+        <div class="bias-desc">Candidate A was penalized for a maternity gap — a life event used to discount her entire career.</div>
+      </div>
+      <div class="bias-card">
+        <div class="bias-icon">🏑</div>
+        <div class="bias-title">Cultural Fit Bias</div>
+        <div class="bias-desc">Lacrosse is a sport associated with elite, predominantly white demographics — "bro culture" coded as a job requirement.</div>
+      </div>
+      <div class="bias-card">
+        <div class="bias-icon">🔤</div>
+        <div class="bias-title">Superficial Formatting Bias</div>
+        <div class="bias-desc">Times New Roman as a filter has nothing to do with skill — it's an aesthetic preference baked into the algorithm.</div>
+      </div>
+      <div class="bias-card">
+        <div class="bias-icon">📉</div>
+        <div class="bias-title">Overqualification Bias</div>
+        <div class="bias-desc">Candidate C's Google experience and leadership was seen as a threat — penalized for being too good.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PERSONAL REFLECTION -->
+  <section>
+    <div class="section-label">My Reflection</div>
+    <h2>What I Learned About My Own Bias</h2>
+
+    <div class="reflection-box">
+      <p>
+        When I first looked at the four resumes, I genuinely felt that the <strong>"bro culture" fit and the lacrosse background mattered</strong>.
+        Something in my thinking connected those traits with being a good team player, a culture fit, someone who could
+        belong. I wasn't trying to be biased — I just was. That's the uncomfortable truth this activity made me face.
+      </p>
+      <p>
+        My group disagreed with me. They pointed to Candidate C — the woman with real Google experience and a track record
+        as a team lead. After hearing their reasoning, I came around. We went with the majority, and looking back, it was
+        clearly the right call. But what stuck with me was the moment before that — <strong>when I was the bias</strong>.
+      </p>
+      <p>
+        The AI made the same choice I initially wanted to make. That isn't a coincidence. The AI was trained on data shaped
+        by people who thought exactly the way I did in that first moment. Bro culture, lacrosse, fonts — someone decided
+        those things mattered, and the AI learned to agree. What this activity taught me is that <strong>AI doesn't create bias,
+        it inherits it from us</strong>. And the only way to break that cycle is to do what my group did — challenge each other,
+        think critically, and not let the first instinct win unchallenged.
+      </p>
+      <p>
+        As a future leader in AI and ML, this is not an abstract problem. Every dataset, every label, every design decision
+        is a moment where bias can slip in. The lesson isn't just to check the algorithm — it's to <strong>check yourself first</strong>.
+      </p>
+    </div>
+  </section>
+
+  <!-- TAKEAWAYS -->
+  <section>
+    <div class="section-label">Leadership Takeaways</div>
+    <h2>What a Leader Must Know</h2>
+
+    <ul class="takeaway-list">
+      <li>
+        <span class="takeaway-num">01</span>
+        Bias in AI starts with the humans who design, label, and test it. Leaders must build diverse teams to surface blind spots before they get encoded into systems.
+      </li>
+      <li>
+        <span class="takeaway-num">02</span>
+        "Culture fit" is one of the most dangerous hiring filters. When used without scrutiny, it becomes a mechanism for exclusion — and AI will scale that exclusion at speed.
+      </li>
+      <li>
+        <span class="takeaway-num">03</span>
+        Group discussion is a built-in bias correction tool. When I was wrong, my group corrected me. Leaders must create environments where people feel safe to challenge each other.
+      </li>
+      <li>
+        <span class="takeaway-num">04</span>
+        Recognizing your own cognitive bias is a leadership skill. The first step to building fair AI is admitting you are not immune to unfairness.
+      </li>
+      <li>
+        <span class="takeaway-num">05</span>
+        Testing AI systems for bias requires intentional effort. If the humans checking the outputs share the same biases as the humans who built it, the bias goes undetected.
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    Raja Ajay M · AI/ML Portfolio · Artifact 04 — Week 4 · AI Bias in Hiring
+  </footer>
+
+</body>
+</html>
