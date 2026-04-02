@@ -607,9 +607,127 @@
   </div>
 </section>
 
+<!-- AI ETHICS CHATBOT -->
+<section id="ai-debate" style="background:#0d0d0d;padding:80px 80px;border-top:2px solid #c9a84c;">
+  <div style="max-width:800px;margin:0 auto;">
+    <p style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.2em;color:#c9a84c;font-weight:500;margin-bottom:12px;">Interactive AI Debate</p>
+    <h2 style="font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.6rem);font-weight:700;color:#f5f0e8;margin-bottom:16px;line-height:1.2;">Ask the AI to<br><em style="color:#c9a84c;">Argue Either Side.</em></h2>
+    <p style="font-size:0.9rem;color:#888;line-height:1.7;margin-bottom:32px;">Choose a perspective and ask the AI to argue the case. Should the autonomous vehicle protect its passenger — or the pedestrians? Explore both sides of this unresolved ethical dilemma.</p>
+
+    <div style="display:flex;gap:12px;margin-bottom:28px;flex-wrap:wrap;">
+      <button onclick="setSide('passenger')" id="btn-passenger" style="flex:1;min-width:180px;padding:16px 20px;background:#161616;border:2px solid #2a2a2a;color:#888;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.2s;text-align:left;">
+        <div style="font-size:1.2rem;margin-bottom:6px;">🧑‍💼</div>
+        <div style="color:#f5f0e8;margin-bottom:4px;">Protect the Passenger</div>
+        <div style="font-size:0.72rem;color:#666;">The AV should prioritize the person who trusted it</div>
+      </button>
+      <button onclick="setSide('pedestrian')" id="btn-pedestrian" style="flex:1;min-width:180px;padding:16px 20px;background:#161616;border:2px solid #2a2a2a;color:#888;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.2s;text-align:left;">
+        <div style="font-size:1.2rem;margin-bottom:6px;">🚶</div>
+        <div style="color:#f5f0e8;margin-bottom:4px;">Protect the Pedestrians</div>
+        <div style="font-size:0.72rem;color:#666;">The AV should minimize total harm to others</div>
+      </button>
+      <button onclick="setSide('neutral')" id="btn-neutral" style="flex:1;min-width:180px;padding:16px 20px;background:#161616;border:2px solid #2a2a2a;color:#888;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all 0.2s;text-align:left;">
+        <div style="font-size:1.2rem;margin-bottom:6px;">⚖️</div>
+        <div style="color:#f5f0e8;margin-bottom:4px;">No Clear Answer</div>
+        <div style="font-size:0.72rem;color:#666;">Explore why this question has no right answer</div>
+      </button>
+    </div>
+
+    <!-- Chat window -->
+    <div style="background:#161616;border:1px solid #2a2a2a;border-radius:4px;overflow:hidden;">
+      <div id="ethics-chat" style="height:320px;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:16px;">
+        <div style="text-align:center;color:#444;font-family:'DM Mono',monospace;font-size:0.78rem;padding:40px 0;">Select a perspective above to begin the debate...</div>
+      </div>
+      <div style="border-top:1px solid #2a2a2a;padding:16px;display:flex;gap:12px;">
+        <input id="ethics-input" type="text" placeholder="Ask a follow-up question..." style="flex:1;background:#0d0d0d;border:1px solid #2a2a2a;color:#f5f0e8;font-family:'DM Sans',sans-serif;font-size:0.85rem;padding:10px 14px;outline:none;border-radius:2px;" onkeydown="if(event.key==='Enter')sendEthics()"/>
+        <button onclick="sendEthics()" style="background:#c9a84c;color:#0d0d0d;border:none;padding:10px 20px;font-family:'DM Sans',sans-serif;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;cursor:pointer;">Send</button>
+      </div>
+    </div>
+    <div id="ethics-loading" style="display:none;text-align:center;padding:16px;color:#c9a84c;font-family:'DM Mono',monospace;font-size:0.8rem;">Thinking...</div>
+  </div>
+</section>
+
 <footer>
-  <p>© 2026 Raja Ajay M · Artifact 03 — AI Ethics Case Study · Indiana Wesleyan University</p>
+  <p>© 2026 Raja Ajay M · Artifact 03 — AI Ethics Case Study</p>
 </footer>
+
+<script>
+let ethicsSide = '';
+let ethicsHistory = [];
+
+function setSide(side) {
+  ethicsSide = side;
+  ['passenger','pedestrian','neutral'].forEach(s => {
+    const btn = document.getElementById('btn-'+s);
+    btn.style.borderColor = s === side ? '#c9a84c' : '#2a2a2a';
+    btn.style.background = s === side ? '#1a1500' : '#161616';
+  });
+
+  const sideText = {
+    passenger: 'Protect the Passenger',
+    pedestrian: 'Protect the Pedestrians',
+    neutral: 'No Clear Answer'
+  };
+  const systemMsg = {
+    passenger: 'You are an AI ethics expert arguing that autonomous vehicles should prioritize protecting their passenger. Make compelling legal, ethical, and practical arguments for this position.',
+    pedestrian: 'You are an AI ethics expert arguing that autonomous vehicles should prioritize minimizing harm to pedestrians. Make compelling utilitarian, ethical, and societal arguments for this position.',
+    neutral: 'You are an AI ethics expert explaining why the autonomous vehicle trolley problem has no clear answer. Explore the philosophical, legal, and technical reasons this remains unresolved.'
+  };
+
+  ethicsHistory = [{ role: 'system', content: systemMsg[side] }];
+
+  const chat = document.getElementById('ethics-chat');
+  chat.innerHTML = `<div style="background:#1a1500;border:1px solid #c9a84c33;border-radius:3px;padding:16px;font-size:0.85rem;color:#c9a84c;font-family:'DM Mono',monospace;">Perspective selected: <strong>${sideText[side]}</strong>. Ask me anything about this position...</div>`;
+}
+
+function addMessage(role, text) {
+  const chat = document.getElementById('ethics-chat');
+  const isAI = role === 'assistant';
+  const div = document.createElement('div');
+  div.style.cssText = `display:flex;gap:12px;align-items:flex-start;${isAI ? '' : 'flex-direction:row-reverse;'}`;
+  div.innerHTML = `
+    <div style="width:28px;height:28px;border-radius:50%;background:${isAI ? '#c9a84c' : '#2a2a2a'};display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0;">${isAI ? '⚖️' : '👤'}</div>
+    <div style="background:${isAI ? '#1c1c1c' : '#1a1a2e'};border:1px solid ${isAI ? '#2a2a2a' : '#2a2a3a'};padding:12px 16px;border-radius:3px;max-width:85%;font-size:0.85rem;line-height:1.7;color:#c8c5be;font-family:'DM Sans',sans-serif;">${text}</div>
+  `;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function sendEthics() {
+  if (!ethicsSide) { alert('Please select a perspective first!'); return; }
+  const input = document.getElementById('ethics-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+
+  addMessage('user', msg);
+  ethicsHistory.push({ role: 'user', content: msg });
+  document.getElementById('ethics-loading').style.display = 'block';
+
+  try {
+    const messages = ethicsHistory.filter(m => m.role !== 'system');
+    const systemPrompt = ethicsHistory.find(m => m.role === 'system')?.content || '';
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: messages
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'No response.';
+    ethicsHistory.push({ role: 'assistant', content: reply });
+    addMessage('assistant', reply);
+  } catch(e) {
+    addMessage('assistant', 'Error: ' + e.message);
+  } finally {
+    document.getElementById('ethics-loading').style.display = 'none';
+  }
+}
+</script>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
   const cursor = document.getElementById('cursor');

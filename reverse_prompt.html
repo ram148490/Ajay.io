@@ -630,9 +630,105 @@
   </div>
 </section>
 
+<!-- AI PROMPT GENERATOR -->
+<section id="ai-tool" style="background:#0d0d0d;padding:80px 80px;border-top:2px solid #c9a84c;">
+  <div style="max-width:800px;margin:0 auto;">
+    <p style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.2em;color:#c9a84c;font-weight:500;margin-bottom:12px;">Interactive AI Tool</p>
+    <h2 style="font-family:'Playfair Display',serif;font-size:clamp(1.8rem,3vw,2.6rem);font-weight:700;color:#f5f0e8;margin-bottom:16px;line-height:1.2;">Describe an Image.<br><em style="color:#c9a84c;">Get the Perfect Prompt.</em></h2>
+    <p style="font-size:0.9rem;color:#888;line-height:1.7;margin-bottom:40px;">Describe any image you have in mind — scene, mood, style, subjects. The AI will generate a professional prompt you could use in Midjourney or DALL-E to create it.</p>
+
+    <div style="background:#161616;border:1px solid #2a2a2a;border-radius:4px;padding:32px;">
+      <label style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.15em;color:#c9a84c;font-weight:600;display:block;margin-bottom:10px;">Describe Your Image</label>
+      <textarea id="rp-input" placeholder="e.g. A fox in a dark forest at night, glowing eyes, mysterious fog, cinematic feel..." style="width:100%;height:120px;background:#0d0d0d;border:1px solid #2a2a2a;color:#f5f0e8;font-family:'DM Sans',sans-serif;font-size:0.88rem;padding:14px;resize:vertical;outline:none;line-height:1.6;border-radius:2px;"></textarea>
+
+      <div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;">
+        <select id="rp-style" style="background:#0d0d0d;border:1px solid #2a2a2a;color:#888;font-family:'DM Sans',sans-serif;font-size:0.75rem;padding:10px 14px;outline:none;cursor:pointer;">
+          <option value="photorealistic">Photorealistic</option>
+          <option value="cinematic">Cinematic</option>
+          <option value="illustration">Digital Illustration</option>
+          <option value="oil painting">Oil Painting</option>
+          <option value="concept art">Concept Art</option>
+          <option value="anime">Anime</option>
+        </select>
+        <select id="rp-platform" style="background:#0d0d0d;border:1px solid #2a2a2a;color:#888;font-family:'DM Sans',sans-serif;font-size:0.75rem;padding:10px 14px;outline:none;cursor:pointer;">
+          <option value="Midjourney">Midjourney</option>
+          <option value="DALL-E">DALL-E</option>
+          <option value="Stable Diffusion">Stable Diffusion</option>
+        </select>
+        <button id="rp-btn" onclick="generatePrompt()" style="background:#c9a84c;color:#0d0d0d;border:none;padding:10px 28px;font-family:'DM Sans',sans-serif;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;cursor:pointer;transition:all 0.2s;margin-left:auto;">Generate Prompt →</button>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div id="rp-output" style="display:none;margin-top:24px;background:#161616;border:1px solid #c9a84c;border-radius:4px;padding:28px;">
+      <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.18em;color:#c9a84c;font-weight:600;margin-bottom:14px;">Generated Prompt</div>
+      <div id="rp-result" style="font-size:0.9rem;color:#f5f0e8;line-height:1.8;font-family:'DM Mono',monospace;white-space:pre-wrap;"></div>
+      <button onclick="copyPrompt()" style="margin-top:20px;background:transparent;border:1px solid #2a2a2a;color:#888;padding:8px 20px;font-family:'DM Sans',sans-serif;font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#c9a84c';this.style.color='#c9a84c'" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#888'">Copy Prompt</button>
+      <span id="rp-copied" style="display:none;margin-left:12px;font-size:0.72rem;color:#6fcf97;font-family:'DM Mono',monospace;">Copied!</span>
+    </div>
+
+    <div id="rp-loading" style="display:none;text-align:center;padding:40px;color:#c9a84c;font-family:'DM Mono',monospace;font-size:0.85rem;letter-spacing:0.1em;">Crafting your prompt...</div>
+    <div id="rp-error" style="display:none;margin-top:16px;background:#1a0a0a;border:1px solid #eb5757;border-radius:4px;padding:16px;color:#eb5757;font-size:0.85rem;font-family:'DM Mono',monospace;"></div>
+  </div>
+</section>
+
 <footer>
-  <p>© 2026 Raja Ajay M · Artifact 02 — Reverse Prompt Engineering · Indiana Wesleyan University</p>
+  <p>© 2026 Raja Ajay M · Artifact 02 — Reverse Prompt Engineering</p>
 </footer>
+
+<script>
+async function generatePrompt() {
+  const input = document.getElementById('rp-input').value.trim();
+  const style = document.getElementById('rp-style').value;
+  const platform = document.getElementById('rp-platform').value;
+  if (!input) { alert('Please describe your image first!'); return; }
+
+  document.getElementById('rp-output').style.display = 'none';
+  document.getElementById('rp-error').style.display = 'none';
+  document.getElementById('rp-loading').style.display = 'block';
+  document.getElementById('rp-btn').disabled = true;
+  document.getElementById('rp-btn').textContent = 'Generating...';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `You are an expert AI image prompt engineer. Generate a highly detailed, professional ${platform} prompt for the following image description.
+
+Style: ${style}
+Description: ${input}
+
+Write ONLY the prompt itself — no explanation, no preamble, no labels. Make it specific with subject, composition, lighting, mood, color palette, and technical camera/style details. Optimized for ${platform}.`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || 'No response received.';
+    document.getElementById('rp-result').textContent = text;
+    document.getElementById('rp-output').style.display = 'block';
+  } catch(e) {
+    document.getElementById('rp-error').style.display = 'block';
+    document.getElementById('rp-error').textContent = 'Error: ' + e.message;
+  } finally {
+    document.getElementById('rp-loading').style.display = 'none';
+    document.getElementById('rp-btn').disabled = false;
+    document.getElementById('rp-btn').textContent = 'Generate Prompt →';
+  }
+}
+
+function copyPrompt() {
+  const text = document.getElementById('rp-result').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    document.getElementById('rp-copied').style.display = 'inline';
+    setTimeout(() => document.getElementById('rp-copied').style.display = 'none', 2000);
+  });
+}
+</script>
 
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
   const cursor = document.getElementById('cursor');
